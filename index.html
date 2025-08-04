@@ -1,0 +1,183 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline HTML Editor for Kids</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+  <style>
+    :root {
+      --bg-color: #121212;
+      --text-color: #ffffff;
+      --accent: #00bcd4;
+      --card-bg: #1e1e1e;
+      --preview-bg: #ffffff;
+      --preview-text: #000000;
+    }body {
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+  background: var(--bg-color);
+  color: var(--text-color);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: #000;
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+}
+
+.tabs button,
+.tools button {
+  background: var(--card-bg);
+  color: var(--text-color);
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.tabs button.active {
+  background: var(--accent);
+}
+
+.tools {
+  display: flex;
+  gap: 10px;
+}
+
+.editor-container {
+  flex: 1;
+  display: flex;
+  background: var(--card-bg);
+}
+
+.editor-panel {
+  flex: 1;
+  display: none;
+}
+
+.editor-panel.active {
+  display: block;
+}
+
+.CodeMirror {
+  height: 100%;
+  font-size: 16px;
+}
+
+iframe {
+  height: 40vh;
+  width: 100%;
+  border: none;
+  background: var(--preview-bg);
+  color: var(--preview-text);
+}
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="tabs">
+      <button class="tab-button active" data-tab="html">HTML</button>
+      <button class="tab-button" data-tab="css">CSS</button>
+      <button class="tab-button" data-tab="js">JavaScript</button>
+    </div>
+    <div class="tools">
+      <button onclick="toggleTheme()">Toggle Theme</button>
+      <button onclick="resetEditors()">Reset</button>
+    </div>
+  </header>  <div class="editor-container">
+    <div id="html" class="editor-panel active"><textarea id="htmlEditor"></textarea></div>
+    <div id="css" class="editor-panel"><textarea id="cssEditor"></textarea></div>
+    <div id="js" class="editor-panel"><textarea id="jsEditor"></textarea></div>
+  </div>  <iframe id="preview"></iframe>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closetag.min.js"></script>  <script>
+    const editors = {
+      html: CodeMirror.fromTextArea(document.getElementById('htmlEditor'), {
+        mode: 'xml',
+        theme: 'dracula',
+        lineNumbers: true,
+        autoCloseTags: true,
+        extraKeys: { "Tab": cm => cm.replaceSelection("\t") }
+      }),
+      css: CodeMirror.fromTextArea(document.getElementById('cssEditor'), {
+        mode: 'css',
+        theme: 'dracula',
+        lineNumbers: true
+      }),
+      js: CodeMirror.fromTextArea(document.getElementById('jsEditor'), {
+        mode: 'javascript',
+        theme: 'dracula',
+        lineNumbers: true
+      })
+    };
+
+    Object.keys(editors).forEach(key => {
+      editors[key].on('change', updatePreview);
+      const saved = localStorage.getItem(key + 'Code');
+      if (saved) editors[key].setValue(saved);
+    });
+
+    function updatePreview() {
+      const html = editors.html.getValue();
+      const css = '<style>' + editors.css.getValue() + '</style>';const js = '<script>' + editors.js.getValue() + '<\/script>';
+  const content = html + css + js;
+  const preview = document.getElementById('preview');
+  preview.srcdoc = content;
+  Object.keys(editors).forEach(key => {
+    localStorage.setItem(key + 'Code', editors[key].getValue());
+  });
+}
+
+document.querySelectorAll('.tab-button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.editor-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+    editors[btn.dataset.tab].refresh();
+    editors[btn.dataset.tab].focus();
+  });
+});
+
+function resetEditors() {
+  if (confirm('Are you sure you want to reset all code?')) {
+    Object.keys(editors).forEach(key => {
+      editors[key].setValue('');
+      localStorage.removeItem(key + 'Code');
+    });
+    updatePreview();
+  }
+}
+
+function toggleTheme() {
+  const body = document.body;
+  if (body.style.background === 'white') {
+    document.documentElement.style.setProperty('--bg-color', '#121212');
+    document.documentElement.style.setProperty('--text-color', '#ffffff');
+    document.documentElement.style.setProperty('--card-bg', '#1e1e1e');
+    document.documentElement.style.setProperty('--preview-bg', '#ffffff');
+    document.documentElement.style.setProperty('--preview-text', '#000000');
+  } else {
+    document.documentElement.style.setProperty('--bg-color', '#ffffff');
+    document.documentElement.style.setProperty('--text-color', '#000000');
+    document.documentElement.style.setProperty('--card-bg', '#f1f1f1');
+    document.documentElement.style.setProperty('--preview-bg', '#ffffff');
+    document.documentElement.style.setProperty('--preview-text', '#000000');
+  }
+}
+
+updatePreview();
+
+  </script>
+</body>
+</html>
