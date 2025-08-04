@@ -1,4 +1,222 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kid-Friendly Code Editor</title>
+  
+  <!-- CodeMirror Core -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+
+  <!-- CodeMirror Modes -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js"></script>
+
+  <!-- CodeMirror Addons -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closetag.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>
+
+  <!-- Dark Theme -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css" />
+  
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background: #121212;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      background: #1e1e1e;
+      border-bottom: 2px solid #333;
+    }
+
+    .tabs {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .tabs button {
+      background: #333;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.3s;
+      font-size: 14px;
+    }
+
+    .tabs button.active {
+      background: #555;
+    }
+
+    .actions button {
+      margin-left: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      background: #333;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    #editors {
+      display: flex;
+      flex-direction: column;
+      width: 50%;
+    }
+
+    .editor-container {
+      flex: 1;
+      display: none;
+    }
+
+    .editor-container.active {
+      display: block;
+    }
+
+    iframe {
+      width: 50%;
+      border: none;
+      background: white;
+    }
+
+    .CodeMirror {
+      height: 100%;
+      font-size: 16px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 6px;
+      background: #1e1e1e;
+      font-size: 12px;
+      border-top: 1px solid #333;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="tabs">
+      <button class="tab-button active" data-tab="html">HTML</button>
+      <button class="tab-button" data-tab="css">CSS</button>
+      <button class="tab-button" data-tab="js">JavaScript</button>
+    </div>
+    <div class="actions">
+      <button onclick="runCode()">Run</button>
+      <button onclick="resetCode()">Reset</button>
+      <button onclick="toggleTheme()">Toggle Theme</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="editors">
+      <div id="html" class="editor-container active">
+        <textarea id="htmlEditor">&lt;h1&gt;Hello&lt;/h1&gt;</textarea>
+      </div>
+      <div id="css" class="editor-container">
+        <textarea id="cssEditor">h1 { color: blue; }</textarea>
+      </div>
+      <div id="js" class="editor-container">
+        <textarea id="jsEditor">console.log("Hello world!");</textarea>
+      </div>
+    </div>
+
+    <iframe id="preview"></iframe>
+  </main>
+
+  <footer>© 2025 FunCode Editor</footer>
+
+  <script>
+    let isDark = true;
+    const theme = "dracula";
+    const editors = {};
+
+    // Create CodeMirror instances
+    function setupEditor(id, mode) {
+      return CodeMirror.fromTextArea(document.getElementById(id + "Editor"), {
+        mode: mode,
+        theme: theme,
+        lineNumbers: true,
+        autoCloseTags: true,
+        autoCloseBrackets: true,
+        indentUnit: 2,
+        extraKeys: { "Ctrl-Space": "autocomplete" }
+      });
+    }
+
+    editors.html = setupEditor("html", "xml");
+    editors.css = setupEditor("css", "css");
+    editors.js = setupEditor("js", "javascript");
+
+    // Default tab switching
+    document.querySelectorAll(".tab-button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        document.querySelectorAll(".editor-container").forEach(c => c.classList.remove("active"));
+        document.getElementById(btn.dataset.tab).classList.add("active");
+        editors[btn.dataset.tab].refresh();
+      });
+    });
+
+    function runCode() {
+      const html = editors.html.getValue();
+      const css = "<style>" + editors.css.getValue() + "</style>";
+      const js = "<script>const log = console.log; console.log = function(msg){ document.body.innerHTML += '<pre>' + msg + '</pre>'; log.apply(console, arguments); };" + editors.js.getValue() + "<\/script>";
+
+      const output = html + css + js;
+      const iframe = document.getElementById("preview");
+      iframe.srcdoc = output;
+    }
+
+    function resetCode() {
+      editors.html.setValue("<h1>Hello</h1>");
+      editors.css.setValue("h1 { color: blue; }");
+      editors.js.setValue("console.log(\"Hello world!\");");
+      runCode();
+    }
+
+    function toggleTheme() {
+      isDark = !isDark;
+      const newTheme = isDark ? "dracula" : "default";
+      Object.values(editors).forEach(editor => editor.setOption("theme", newTheme));
+      document.body.style.background = isDark ? "#121212" : "#f5f5f5";
+      document.body.style.color = isDark ? "#fff" : "#000";
+    }
+
+    // Initial run
+    runCode();
+  </script>
+</body>
+</html>
+
+
+
+
+
+<!--<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
